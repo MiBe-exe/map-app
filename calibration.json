@@ -1,0 +1,22 @@
+{
+    "a": 0,
+    "b": 0,
+    "c": 0,
+    "d": 0,
+    "e": 0,
+    "f": 0,
+    "points": [
+      {
+        "imageXY": [0, 0],
+        "gps": { "lat": 0, "lon": 0, "accuracy": 0 }
+      },
+      {
+        "imageXY": [0, 0],
+        "gps": { "lat": 0, "lon": 0, "accuracy": 0 }
+      },
+      {
+        "imageXY": [0, 0],
+        "gps": { "lat": 0, "lon": 0, "accuracy": 0 }
+      }
+    ]
+  }
