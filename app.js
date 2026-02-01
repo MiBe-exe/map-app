@@ -59,7 +59,7 @@ window.onload = async () => {
     initMap();
 
     if (developerMode) {
-        showBanner("Developer Mode active — calibration required.");
+        showBanner("Developer Mode active — raw pixel map.");
         return;
     }
 
@@ -67,7 +67,7 @@ window.onload = async () => {
         applyGlobalCalibration();
         showBanner("Map calibrated automatically.");
     } else {
-        showBanner("Calibrate the map — stand at a fixed point and tap it on the plan.");
+        showBanner("Calibrate the map — tap three points on the plan.");
     }
 };
 
@@ -99,10 +99,9 @@ function initMap() {
             center: [extent[2] / 2, extent[3] / 2],
             zoom: 2
         }),
-        controls: [] // cleaner UI
+        controls: []
     });
 
-    // Marker layer
     markerLayer = new ol.layer.Vector({
         source: new ol.source.Vector()
     });
@@ -145,6 +144,10 @@ function handleMapClick(event) {
     const imageXY = event.coordinate;
 
     if (!isCalibrated) {
+        if (calibrationPoints.length >= 3) {
+            showBanner("Calibration already has 3 points.");
+            return;
+        }
         startCalibrationPoint(imageXY);
     } else {
         dropEvent(imageXY);
@@ -221,15 +224,23 @@ function getGPSReading() {
 // Save calibration point
 // ------------------------------------------------------
 function saveCalibrationPoint() {
+    const last = calibrationPoints[calibrationPoints.length - 1];
+
+    if (!last.gps) {
+        showBanner("GPS not captured yet — try again.");
+        return;
+    }
+
     hideBottomSheet();
 
     const count = calibrationPoints.length;
 
     if (count === 1) {
-        showBanner("Great. Walk to a second point far away from this one.");
+        showBanner("Great. Walk to a second point far away.");
     } else if (count === 2) {
-        showBanner("Nice. Choose a third point that forms a triangle.");
+        showBanner("Nice. Choose a third point to form a triangle.");
     } else if (count === 3) {
+        showBanner("Processing calibration…");
         finishCalibration();
     }
 }
@@ -238,6 +249,11 @@ function saveCalibrationPoint() {
 // Finish calibration
 // ------------------------------------------------------
 function finishCalibration() {
+    if (calibrationPoints.some(p => !p.gps)) {
+        showBanner("Calibration error: missing GPS data.");
+        return;
+    }
+
     const T = computeAffineTransform(calibrationPoints);
 
     const json = exportCalibrationJSON(T, calibrationPoints);
@@ -246,27 +262,9 @@ function finishCalibration() {
     localStorage.setItem("calibration", JSON.stringify(T));
     isCalibrated = true;
 
-    showBanner("Calibration complete. Tap anywhere to drop events.");
+    showBanner("Calibration complete — map aligned.");
 
-    const p1 = calibrationPoints[0].gps;
-    const p2 = calibrationPoints[1].gps;
-
-    map.setView(new ol.View({
-        projection: "EPSG:4326",
-        center: [p1.lon, p1.lat],
-        zoom: 18
-    }));
-
-    imageLayer.setSource(new ol.source.ImageStatic({
-        url: "siteplan.jpg",
-        imageExtent: [p1.lon, p1.lat, p2.lon, p2.lat],
-        projection: "EPSG:4326"
-    }));
-
-    showBottomSheet(`
-        <div class="accuracy">Calibration complete</div>
-        <p>Copy the JSON from the console and upload it as <b>calibration.json</b> to your GitHub repo.</p>
-    `);
+    applyTransformToMap(T);
 }
 
 // ------------------------------------------------------
@@ -278,18 +276,36 @@ function applyGlobalCalibration() {
     const T = globalCalibration;
     localStorage.setItem("calibration", JSON.stringify(T));
 
-    const p1 = globalCalibration.points[0].gps;
-    const p2 = globalCalibration.points[1].gps;
+    applyTransformToMap(T);
+}
+
+// ------------------------------------------------------
+// Apply affine transform to map (GPS mode)
+// ------------------------------------------------------
+function applyTransformToMap(T) {
+    const corners = [
+        imageToGPS(0, 0, T),
+        imageToGPS(5000, 0, T),
+        imageToGPS(0, 7068, T),
+        imageToGPS(5000, 7068, T)
+    ];
+
+    const minLon = Math.min(...corners.map(c => c.lon));
+    const maxLon = Math.max(...corners.map(c => c.lon));
+    const minLat = Math.min(...corners.map(c => c.lat));
+    const maxLat = Math.max(...corners.map(c => c.lat));
+
+    const gpsExtent = [minLon, minLat, maxLon, maxLat];
 
     map.setView(new ol.View({
         projection: "EPSG:4326",
-        center: [p1.lon, p1.lat],
+        center: [(minLon + maxLon) / 2, (minLat + maxLat) / 2],
         zoom: 18
     }));
 
     imageLayer.setSource(new ol.source.ImageStatic({
         url: "siteplan.jpg",
-        imageExtent: [p1.lon, p1.lat, p2.lon, p2.lat],
+        imageExtent: gpsExtent,
         projection: "EPSG:4326"
     }));
 }
