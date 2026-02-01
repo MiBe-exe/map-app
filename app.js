@@ -27,6 +27,17 @@ function detectDeveloperMode() {
 }
 
 function toggleDeveloperMode() {
+    const correctPassword = "mibe123";  // change to whatever you want
+
+    if (!developerMode) {
+        const entered = prompt("Enter developer password:");
+
+        if (entered !== correctPassword) {
+            showBanner("Incorrect password.");
+            return;
+        }
+    }
+
     developerMode = !developerMode;
     localStorage.setItem("developerMode", developerMode ? "true" : "false");
     location.reload();
