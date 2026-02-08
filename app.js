@@ -64,6 +64,7 @@ function toggleDeveloperMode() {
 
 function debugStatus(gps) {
     console.log("GPS:", gps);
+    console.log("Loaded calibration:", globalCalibration);
     console.log("Calibration loaded:", !!globalCalibration);
     if (globalCalibration) {
         console.log("Transform:", globalCalibration);
