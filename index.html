@@ -80,6 +80,26 @@
 
 <body>
 
+    <div id="debugPanel" style="
+        position: fixed;
+        bottom: 10px;
+        left: 10px;
+        width: 260px;
+        max-height: 40%;
+        overflow-y: auto;
+        background: rgba(0,0,0,0.75);
+        color: #0f0;
+        font-family: monospace;
+        font-size: 12px;
+        padding: 8px;
+        border-radius: 6px;
+        z-index: 9999;
+        pointer-events: auto;
+    ">
+        <strong>Debug Panel</strong>
+        <div id="debugContent"></div>
+    </div>
+
     <div id="calibration-banner">Loading…</div>
 
     <button id="dev-toggle" onclick="toggleDeveloperMode()">Dev Mode</button>

@@ -43,6 +43,33 @@ function toggleDeveloperMode() {
     location.reload();
 }
 
+(function() {
+    const debugDiv = document.getElementById("debugContent");
+
+    const originalLog = console.log;
+    console.log = function(...args) {
+        originalLog.apply(console, args);
+
+        const msg = args.map(a => 
+            typeof a === "object" ? JSON.stringify(a) : String(a)
+        ).join(" ");
+
+        const line = document.createElement("div");
+        line.textContent = msg;
+        debugDiv.appendChild(line);
+
+        debugDiv.scrollTop = debugDiv.scrollHeight;
+    };
+})();
+
+function debugStatus(gps) {
+    console.log("GPS:", gps);
+    console.log("Calibration loaded:", !!globalCalibration);
+    if (globalCalibration) {
+        console.log("Transform:", globalCalibration);
+    }
+}
+
 // ------------------------------------------------------
 // Load global calibration.json (unless in dev mode)
 // ------------------------------------------------------
@@ -219,6 +246,14 @@ async function stabiliseGPS() {
 }
 
 function getGPSReading() {
+    navigator.geolocation.watchPosition(pos => {
+        const gps = {
+            lat: pos.coords.latitude,
+            lon: pos.coords.longitude,
+            accuracy: pos.coords.accuracy
+        };
+        debugStatus(gps);
+    });
     return new Promise(resolve => {
         navigator.geolocation.getCurrentPosition(
             pos => resolve({
